@@ -1,0 +1,62 @@
+DROP TABLE if exists gpea_datateam.table_report_CSDetailReport_prompted; 
+CREATE TABLE gpea_datateam.table_report_CSDetailReport_prompted AS (
+
+select case when a.name like '%2023%' then '2023'
+	when a.name like '%2022%' then '2022'
+	when a.name like '%2021%' then '2021'
+    when a.name like '%2020%' then '2020'
+	when a.name like '%2019%' then '2019'
+    when a.name like '%2018%' then '2018'
+    when a.name like '%2017%' then '2017'
+    when a.name like '%2016%' then '2016'
+    else '' end as year,
+a.region,a.name,a.status,a.effective_list_count__c,a.reach_count__c,a.accept_count__c,a.program_income_monthly__c,sum(a.accept_count_oppt) as accept_count_oppt,sum(a.accept_amount_oppt) as accept_amount_oppt, sum(b.paid_count_oppt) as paid_count_oppt,sum(b.paid_amount_oppt) as paid_amount_oppt,max(a.lastmodifieddate) as lastmodifieddate, max(a.ref_opportunity) as ref_opportunity  from
+(select distinct a.name,a.status,a.Country_Of_Ownership__c as region,a.effective_list_count__c,a.reach_count__c,a.accept_count__c,a.program_income_monthly__c,
+count(distinct b.id) as accept_count_oppt, sum(b.amount) as accept_amount_oppt,
+to_char(dateadd(month,1,d.lastmodifieddate),'MM/YYYY') as lastmodifieddate,to_char(b.closedate,'MM/YYYY') as ref_opportunity
+from gpea_staging.un_campaign a
+inner join gpea_staging.un_campaign_member c on a.id=c.campaignid
+left outer join gpea_staging.un_opportunity b on c.gpi__constituentid__c=b.gpi__gp_constituent_id__c
+left outer join gpea_staging.un_task d on c.contactid=d.whoid and c.campaignid=d.WhatId
+where a.campaign_subcategory__c in ('Invalid Card','Renewal','Unfreeze','Debit Fail Call') and NOT (d.s360aie__TFROutcome__c IS NULL)
+and to_char(dateadd(month,1,d.lastmodifieddate),'MM/YYYY')=to_char(b.closedate,'MM/YYYY') and d.s360aie__TFROutcome__c='Accept (Online)'
+group by a.name,a.status,a.effective_list_count__c,a.reach_count__c,a.accept_count__c,a.program_income_monthly__c,to_char(dateadd(month,1,d.lastmodifieddate),'MM/YYYY'),to_char(b.closedate,'MM/YYYY'),a.Country_Of_Ownership__c) a
+left outer join
+(select distinct a.name,a.status,a.effective_list_count__c,a.reach_count__c,a.accept_count__c,a.program_income_monthly__c,
+count(distinct b.id) as paid_count_oppt, sum(b.amount) as paid_amount_oppt,
+to_char(dateadd(month,1,d.lastmodifieddate),'MM/YYYY') as lastmodifieddate,to_char(b.closedate,'MM/YYYY') as ref_opportunity
+from gpea_staging.un_campaign a
+inner join gpea_staging.un_campaign_member c on a.id=c.campaignid
+left outer join gpea_staging.un_opportunity b on c.gpi__constituentid__c=b.gpi__gp_constituent_id__c
+left outer join gpea_staging.un_task d on c.contactid=d.whoid and c.campaignid=d.WhatId
+where a.campaign_subcategory__c in ('Invalid Card','Renewal','Unfreeze','Debit Fail Call') and NOT (d.s360aie__TFROutcome__c IS NULL)
+and to_char(dateadd(month,1,d.lastmodifieddate),'MM/YYYY')=to_char(b.closedate,'MM/YYYY') and d.s360aie__TFROutcome__c='Accept (Online)'
+and b.stagename='Closed Won'
+group by a.name,a.status,a.effective_list_count__c,a.reach_count__c,a.accept_count__c,a.program_income_monthly__c,to_char(dateadd(month,1,d.lastmodifieddate),'MM/YYYY'),to_char(b.closedate,'MM/YYYY'))b
+on a.name=b.name and a.status=b.status and a.lastmodifieddate=b.lastmodifieddate and a.ref_opportunity=b.ref_opportunity
+group by case when a.name like '%2023%' then '2023'
+	when a.name like '%2022%' then '2022'
+	when a.name like '%2021%' then '2021'
+    when a.name like '%2020%' then '2020'
+	when a.name like '%2019%' then '2019'
+    when a.name like '%2018%' then '2018'
+    when a.name like '%2017%' then '2017'
+    when a.name like '%2016%' then '2016'
+    else '' end,a.name,a.region,a.status,a.effective_list_count__c,a.reach_count__c,a.accept_count__c,a.program_income_monthly__c);
+    
+    
+ -- GRANT Statements for GPEA Group
+GRANT ALL ON SCHEMA gpea_analytics TO GROUP gpea;
+GRANT ALL ON SCHEMA gpea_staging TO GROUP gpea;
+GRANT ALL ON SCHEMA gpea_reporting TO GROUP gpea;
+GRANT ALL ON SCHEMA public TO GROUP gpea;
+GRANT ALL ON SCHEMA gpea_datateam TO GROUP gpea;
+GRANT ALL ON gpea_datateam.table_report_CSDetailReport_prompted TO GROUP gpea;
+
+-- GRANT Statements for GPEA Robot User
+GRANT ALL ON SCHEMA gpea_analytics TO greenpeaceearobot;
+GRANT ALL ON SCHEMA gpea_staging TO greenpeaceearobot;
+GRANT ALL ON SCHEMA gpea_reporting TO greenpeaceearobot;
+GRANT ALL ON SCHEMA public TO greenpeaceearobot;
+GRANT ALL ON SCHEMA gpea_datateam TO greenpeaceearobot;
+GRANT ALL ON gpea_datateam.table_report_CSDetailReport_prompted TO greenpeaceearobot;
